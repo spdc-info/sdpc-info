@@ -110,10 +110,10 @@ export const VolunteerSection: React.FC<VolunteerSectionProps> = ({
           phone: '',
           email: '',
           address: '',
-          division: divisions[0] || 'ঢাকা',
+          division: activeDivisions[0] || 'ঢাকা',
           profession: '',
           bloodGroup: 'A+',
-          interestArea: interestAreas[0] || 'ত্রাণ বিতরণ ও জরুরি উদ্ধার',
+          interestArea: activeInterestAreas[0] || 'ত্রাণ বিতরণ ও জরুরি উদ্ধার',
           message: ''
         });
         setExtraAnswers({});

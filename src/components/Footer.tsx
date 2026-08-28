@@ -101,18 +101,25 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center gap-3">
               <div
-  className="w-10 h-10 rounded-xl flex items-center justify-center border overflow-hidden"
-  style={{
-    backgroundColor: settings.primaryColor || '#059669',
-    borderColor: settings.secondaryColor || '#d97706'
-  }}
->
-  <img
-    src="https://lh3.googleusercontent.com/d/1AU4y5jaii-s9buDQGafouVSyNibeXOFF"
-    alt="Logo"
-    className="w-full h-full object-contain"
-  />
-</div>
+                className="w-10 h-10 rounded-xl flex items-center justify-center border overflow-hidden shrink-0"
+                style={{
+                  backgroundColor: settings.primaryColor || '#059669',
+                  borderColor: settings.secondaryColor || '#d97706'
+                }}
+              >
+                {settings.logoUrl ? (
+                  <img
+                    src={formatDriveImageUrl(settings.logoUrl)}
+                    alt={settings.foundationName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className="text-xl font-arabic text-amber-300 select-none">☪</span>
+                )}
+              </div>
               <div>
                 <h3 className="text-xl font-bold font-serif-bn text-white">{settings.foundationName}</h3>
                 <p className="text-xs text-amber-300 font-sans-bn">{settings.slogan}</p>

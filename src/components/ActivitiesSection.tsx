@@ -11,23 +11,66 @@ import {
   ChevronRight,
   FolderOpen,
   Target,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  Check
 } from 'lucide-react';
 import { formatDriveImageUrl, LOADING_PLACEHOLDER_IMAGE } from '../utils/imageHelper';
 import { getYouTubeEmbedUrl } from '../utils/mediaHelper';
 
 interface ActivitiesSectionProps {
   activities: ActivityItem[];
+  initialActivityId?: string | null;
   onDonateClick: (activityTitle: string) => void;
+  onClearActivity?: () => void;
 }
 
 export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
   activities,
-  onDonateClick
+  initialActivityId,
+  onDonateClick,
+  onClearActivity
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('সকল');
   const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
   const [topSlideIndex, setTopSlideIndex] = useState<number>(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Deep linking: Open project/activity modal automatically
+  useEffect(() => {
+    if (!activities || activities.length === 0) return;
+
+    const findAndSetActivity = (targetId: string) => {
+      const match = activities.find(a => 
+        a.id === targetId || 
+        a.title.trim().toLowerCase() === decodeURIComponent(targetId).trim().toLowerCase()
+      );
+      if (match) {
+        setSelectedActivity(match);
+      }
+    };
+
+    if (initialActivityId) {
+      findAndSetActivity(initialActivityId);
+      return;
+    }
+
+    const hash = window.location.hash || '';
+    const hashMatch = hash.match(/^#activity-(.+)$/);
+    if (hashMatch && hashMatch[1]) {
+      findAndSetActivity(decodeURIComponent(hashMatch[1]));
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const actParam = params.get('activity') || params.get('project');
+      if (actParam) {
+        findAndSetActivity(decodeURIComponent(actParam));
+      }
+    } catch (e) {}
+  }, [activities, initialActivityId]);
 
   const categories = ['সকল', 'খাদ্য সহায়তা', 'শিক্ষা ও কোরআন', 'চিকিৎসা সেবা', 'এতিম প্রতিপালন', 'মসজিদ ও পানির প্রকল্প', 'দুর্যোগ ত্রাণ'];
 
@@ -43,6 +86,59 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
     }, 5000);
     return () => clearInterval(timer);
   }, [activities.length]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleOpenActivity = (act: ActivityItem) => {
+    setSelectedActivity(act);
+    try {
+      const shareUrl = `${window.location.pathname}?tab=activities&activity=${encodeURIComponent(act.id)}#activity-${encodeURIComponent(act.id)}`;
+      window.history.replaceState(null, '', shareUrl);
+    } catch (e) {}
+  };
+
+  const handleCloseActivity = () => {
+    setSelectedActivity(null);
+    onClearActivity?.();
+    try {
+      const cleanUrl = `${window.location.pathname}?tab=activities`;
+      window.history.replaceState(null, '', cleanUrl);
+    } catch (e) {}
+  };
+
+  const handleCopyLink = async (act: ActivityItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=activities&activity=${encodeURIComponent(act.id)}#activity-${encodeURIComponent(act.id)}`;
+
+    let copied = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      }
+    } catch (err) {}
+
+    if (!copied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {}
+    }
+
+    setCopiedId(act.id);
+    showToast(`"${act.title}" এর সরাসরি শেয়ার লিংক কপি হয়েছে!`);
+    setTimeout(() => setCopiedId(null), 3000);
+  };
 
   const topFeatured = activities[topSlideIndex] || activities[0];
 
@@ -99,16 +195,23 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
                 </h3>
 
                 <p className="text-xs sm:text-sm text-slate-300 font-sans-bn line-clamp-2 mb-4 max-w-2xl">
-                  {topFeatured.description}
+                  {topFeatured.shortDesc || topFeatured.fullDesc}
                 </p>
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setSelectedActivity(topFeatured)}
+                    onClick={() => handleOpenActivity(topFeatured)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer hover:scale-102"
                   >
                     <span>বিস্তারিত দেখুন ও দান করুন</span>
                     <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => handleCopyLink(topFeatured, e)}
+                    className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-xs transition-colors cursor-pointer"
+                    title="এই প্রকল্পের লিংক কপি করুন"
+                  >
+                    {copiedId === topFeatured.id ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -177,7 +280,7 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
               return (
                 <div
                   key={act.id}
-                  onClick={() => setSelectedActivity(act)}
+                  onClick={() => handleOpenActivity(act)}
                   className="py-4 px-3 hover:bg-emerald-50/60 rounded-2xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group font-serif-bn"
                 >
                   <div className="flex items-start gap-3.5 flex-1 min-w-0">
@@ -220,13 +323,20 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0 self-end md:self-center pl-10 md:pl-0">
+                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center pl-10 md:pl-0">
+                    <button
+                      onClick={(e) => handleCopyLink(act, e)}
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                      title="এই প্রকল্পের লিংক কপি করুন"
+                    >
+                      {copiedId === act.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onDonateClick(act.title);
                       }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold font-serif-bn transition-all shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold font-serif-bn transition-all shadow-xs"
                     >
                       <HeartHandshake className="w-3.5 h-3.5" />
                       <span>দান করুন</span>
@@ -234,7 +344,7 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedActivity(act);
+                        handleOpenActivity(act);
                       }}
                       className="px-3 py-2 rounded-xl bg-slate-100 group-hover:bg-emerald-700 group-hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
                     >
@@ -265,7 +375,7 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
                 }}
               />
               <button
-                onClick={() => setSelectedActivity(null)}
+                onClick={handleCloseActivity}
                 className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xs transition-colors cursor-pointer"
                 title="বন্ধ করুন"
               >
@@ -330,25 +440,35 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
               )}
 
               <div className="text-sm sm:text-base leading-relaxed text-slate-700 font-serif-bn whitespace-pre-line border-t border-slate-100 pt-4">
-                {selectedActivity.description}
+                {selectedActivity.fullDesc || selectedActivity.shortDesc}
               </div>
 
               {/* Action Buttons */}
               <div className="pt-6 border-t border-slate-200 flex items-center justify-between flex-wrap gap-4">
-                <button
-                  onClick={() => {
-                    const title = selectedActivity.title;
-                    setSelectedActivity(null);
-                    onDonateClick(title);
-                  }}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold shadow-lg transition-all cursor-pointer"
-                >
-                  <HeartHandshake className="w-4 h-4" />
-                  <span>এই প্রকল্পে দান করুন</span>
-                </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => {
+                      const title = selectedActivity.title;
+                      handleCloseActivity();
+                      onDonateClick(title);
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold shadow-lg transition-all cursor-pointer"
+                  >
+                    <HeartHandshake className="w-4 h-4" />
+                    <span>এই প্রকল্পে দান করুন</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => handleCopyLink(selectedActivity, e)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    {copiedId === selectedActivity.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedId === selectedActivity.id ? 'কপি হয়েছে' : 'লিংক কপি করুন'}</span>
+                  </button>
+                </div>
 
                 <button
-                  onClick={() => setSelectedActivity(null)}
+                  onClick={handleCloseActivity}
                   className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                 >
                   বন্ধ করুন
@@ -357,6 +477,13 @@ export const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-slate-900 text-white text-xs sm:text-sm font-serif-bn shadow-2xl border border-slate-700 animate-bounce">
+          {toastMessage}
         </div>
       )}
 

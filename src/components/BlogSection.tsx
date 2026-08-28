@@ -20,15 +20,59 @@ import { getYouTubeEmbedUrl } from '../utils/mediaHelper';
 
 interface BlogSectionProps {
   blogs: BlogPost[];
+  initialArticleId?: string | null;
+  onClearArticle?: () => void;
 }
 
-export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
+export const BlogSection: React.FC<BlogSectionProps> = ({ 
+  blogs,
+  initialArticleId,
+  onClearArticle
+}) => {
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('সকল');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Deep linking: Open article automatically if URL hash or initialArticleId matches
+  useEffect(() => {
+    if (!blogs || blogs.length === 0) return;
+
+    const findAndSetArticle = (targetIdOrSlug: string) => {
+      const match = blogs.find(b => 
+        b.id === targetIdOrSlug || 
+        b.slug === targetIdOrSlug ||
+        b.title.trim().toLowerCase() === decodeURIComponent(targetIdOrSlug).trim().toLowerCase()
+      );
+      if (match) {
+        setSelectedBlog(match);
+      }
+    };
+
+    if (initialArticleId) {
+      findAndSetArticle(initialArticleId);
+      return;
+    }
+
+    // Check window hash on mount/update
+    const hash = window.location.hash || '';
+    const hashMatch = hash.match(/^#blog-(.+)$/);
+    if (hashMatch && hashMatch[1]) {
+      findAndSetArticle(decodeURIComponent(hashMatch[1]));
+      return;
+    }
+
+    // Check search params
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const articleParam = params.get('article') || params.get('blog');
+      if (articleParam) {
+        findAndSetArticle(decodeURIComponent(articleParam));
+      }
+    } catch (e) {}
+  }, [blogs, initialArticleId]);
 
   const featuredBlogs = blogs.length > 0 ? blogs.slice(0, 5) : [];
 
@@ -54,20 +98,55 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleCopyLink = (blog: BlogPost, e?: React.MouseEvent) => {
+  const handleOpenBlog = (blog: BlogPost) => {
+    setSelectedBlog(blog);
+    try {
+      const shareUrl = `${window.location.pathname}?tab=blog&article=${encodeURIComponent(blog.slug || blog.id)}#blog-${encodeURIComponent(blog.slug || blog.id)}`;
+      window.history.replaceState(null, '', shareUrl);
+    } catch (e) {}
+  };
+
+  const handleCloseBlog = () => {
+    setSelectedBlog(null);
+    onClearArticle?.();
+    try {
+      const cleanUrl = `${window.location.pathname}?tab=blog`;
+      window.history.replaceState(null, '', cleanUrl);
+    } catch (e) {}
+  };
+
+  const handleCopyLink = async (blog: BlogPost, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const shareUrl = `${window.location.origin}${window.location.pathname}#blog-${blog.slug || blog.id}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=blog&article=${encodeURIComponent(blog.slug || blog.id)}#blog-${encodeURIComponent(blog.slug || blog.id)}`;
     
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        setCopiedId(blog.id);
-        showToast(`"${blog.title}" এর লিংক কপি হয়েছে!`);
-        setTimeout(() => setCopiedId(null), 2500);
-      });
+    let copied = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      }
+    } catch (err) {}
+
+    if (!copied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {}
     }
+
+    setCopiedId(blog.id);
+    showToast(`"${blog.title}" এর সরাসরি পড়ার লিংক কপি হয়েছে!`);
+    setTimeout(() => setCopiedId(null), 3000);
   };
 
   const currentFeatured = featuredBlogs[currentSlideIndex] || featuredBlogs[0];
@@ -130,7 +209,7 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setSelectedBlog(currentFeatured)}
+                    onClick={() => handleOpenBlog(currentFeatured)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer hover:scale-102"
                   >
                     <BookOpen className="w-4 h-4" />
@@ -139,10 +218,11 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
 
                   <button
                     onClick={(e) => handleCopyLink(currentFeatured, e)}
-                    className="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all cursor-pointer"
-                    title="লিংক কপি করুন"
+                    className="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all cursor-pointer flex items-center gap-1.5"
+                    title="আর্টিকেলের লিংক কপি করুন"
                   >
                     {copiedId === currentFeatured.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span className="text-xs font-serif-bn hidden sm:inline">{copiedId === currentFeatured.id ? 'কপি হয়েছে' : 'লিংক কপি'}</span>
                   </button>
                 </div>
               </div>
@@ -226,7 +306,7 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
               {filteredBlogs.map((blog, idx) => (
                 <div
                   key={blog.id}
-                  onClick={() => setSelectedBlog(blog)}
+                  onClick={() => handleOpenBlog(blog)}
                   className="py-3.5 px-3 hover:bg-emerald-50/60 rounded-2xl transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                 >
                   <div className="flex items-start gap-3.5 flex-1 min-w-0">
@@ -255,15 +335,22 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center pl-10 sm:pl-0">
-                    <span className="text-xs text-slate-400 font-sans-bn flex items-center gap-1">
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center pl-10 sm:pl-0">
+                    <span className="text-xs text-slate-400 font-sans-bn flex items-center gap-1 hidden md:flex">
                       <Clock className="w-3 h-3" />
                       {blog.readTime}
                     </span>
                     <button
+                      onClick={(e) => handleCopyLink(blog, e)}
+                      className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                      title="আর্টিকেলের লিংক কপি করুন"
+                    >
+                      {copiedId === blog.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedBlog(blog);
+                        handleOpenBlog(blog);
                       }}
                       className="px-3 py-1.5 rounded-xl bg-slate-100 group-hover:bg-emerald-700 group-hover:text-white text-slate-700 text-xs font-bold font-serif-bn transition-all shadow-2xs"
                     >
@@ -294,7 +381,7 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
                 }}
               />
               <button
-                onClick={() => setSelectedBlog(null)}
+                onClick={handleCloseBlog}
                 className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xs transition-colors cursor-pointer"
                 title="বন্ধ করুন"
               >
@@ -359,7 +446,7 @@ export const BlogSection: React.FC<BlogSectionProps> = ({ blogs }) => {
                 </div>
 
                 <button
-                  onClick={() => setSelectedBlog(null)}
+                  onClick={handleCloseBlog}
                   className="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   বন্ধ করুন

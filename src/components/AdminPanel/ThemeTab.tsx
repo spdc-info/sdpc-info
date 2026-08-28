@@ -1,6 +1,7 @@
 import React from 'react';
 import { SiteSettings } from '../../types';
 import { Palette, Check, RefreshCcw, Sparkles, Sliders, Eye } from 'lucide-react';
+import { formatDriveImageUrl } from '../../utils/imageHelper';
 
 interface ThemeTabProps {
   settings: SiteSettings;
@@ -307,13 +308,24 @@ export const ThemeTab: React.FC<ThemeTabProps> = ({ settings, onChangeSettings, 
         >
           <div className="flex items-center gap-3 mb-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md overflow-hidden"
               style={{
                 backgroundColor: settings.primaryColor || '#059669',
                 border: `2px solid ${settings.secondaryColor || '#d97706'}`
               }}
             >
-              ☪
+              {settings.logoUrl ? (
+                <img
+                  src={formatDriveImageUrl(settings.logoUrl)}
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                '☪'
+              )}
             </div>
             <div>
               <h4

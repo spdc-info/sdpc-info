@@ -82,11 +82,13 @@ export const BotQnATab: React.FC<BotQnATabProps> = ({
 
   const handleSaveWelcomeSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateSettings({
-      ...settings,
-      botTitle,
-      botWelcomeMsg: welcomeText
-    });
+    if (onUpdateSettings && settings) {
+      onUpdateSettings({
+        ...settings,
+        botTitle,
+        botWelcomeMsg: welcomeText
+      });
+    }
     setIsSavedWelcome(true);
     setTimeout(() => setIsSavedWelcome(false), 2500);
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DatabaseState } from '../types';
 import { generateIslamicAIResponse, ChatMessage } from '../services/aiKnowledgeEngine';
+import { formatDriveImageUrl } from '../utils/imageHelper';
 import { 
   Sparkles, 
   Send, 
@@ -157,11 +158,19 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
                 {/* Subtle Glow Beam */}
                 <div className="absolute inset-0 bg-radial from-amber-400/20 via-transparent to-transparent opacity-80" />
                 
-                {/* Main AI Bot Icon */}
-                <Bot className="w-5 h-5 text-amber-300 relative z-10 group-hover:scale-110 transition-transform" />
-                
-                {/* Sparkle badge on corner */}
-                
+                {/* Main AI Bot / Unified Logo */}
+                {db.settings.logoUrl ? (
+                  <img
+                    src={formatDriveImageUrl(db.settings.logoUrl)}
+                    alt="Logo"
+                    className="w-full h-full object-cover relative z-10"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <Bot className="w-5 h-5 text-amber-300 relative z-10 group-hover:scale-110 transition-transform" />
+                )}
               </div>
             </div>
 
@@ -204,8 +213,21 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
             <div className="flex items-center gap-3">
               <div className="p-[1.5px] rounded-xl bg-gradient-to-tr from-amber-400 via-amber-200 to-yellow-400 shadow-md shrink-0">
                 <div className="w-9 h-9 rounded-[10px] bg-gradient-to-b from-emerald-900 via-emerald-950 to-teal-950 text-amber-300 flex items-center justify-center relative overflow-hidden shadow-inner">
-                  <Bot className="w-4.5 h-4.5 text-amber-300 relative z-10" />
-                  <Sparkles className="w-2.5 h-2.5 text-amber-200 absolute top-1 right-1 animate-pulse z-10" />
+                  {db.settings.logoUrl ? (
+                    <img
+                      src={formatDriveImageUrl(db.settings.logoUrl)}
+                      alt="Logo"
+                      className="w-full h-full object-cover relative z-10"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <Bot className="w-4.5 h-4.5 text-amber-300 relative z-10" />
+                      <Sparkles className="w-2.5 h-2.5 text-amber-200 absolute top-1 right-1 animate-pulse z-10" />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -331,9 +353,20 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
                 >
                   {/* Bot Avatar */}
                   {isBot && (
-                    <div className="p-[1px] rounded-lg bg-gradient-to-tr from-amber-400 to-amber-200 shadow-xs shrink-0 mt-0.5">
-                      <div className="w-6 h-6 rounded-[7px] bg-emerald-950 text-amber-300 flex items-center justify-center">
-                        <Bot className="w-3.5 h-3.5" />
+                    <div className="p-[1px] rounded-lg bg-gradient-to-tr from-amber-400 to-amber-200 shadow-xs shrink-0 mt-0.5 overflow-hidden">
+                      <div className="w-6 h-6 rounded-[7px] bg-emerald-950 text-amber-300 flex items-center justify-center overflow-hidden">
+                        {db.settings.logoUrl ? (
+                          <img
+                            src={formatDriveImageUrl(db.settings.logoUrl)}
+                            alt="Logo"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Bot className="w-3.5 h-3.5" />
+                        )}
                       </div>
                     </div>
                   )}

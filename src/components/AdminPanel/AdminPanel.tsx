@@ -18,6 +18,7 @@ import {
 } from '../../types';
 import { GOOGLE_APPS_SCRIPT_CODE, pushToGoogleSheets } from '../../services/sheetSync';
 import { DEFAULT_DEPLOYED_APP_SCRIPT_URL } from '../../utils/googleAppsScriptCode';
+import { formatDriveImageUrl } from '../../utils/imageHelper';
 import { ThemeTab } from './ThemeTab';
 import { VolunteerFormTab } from './VolunteerFormTab';
 import { BotQnATab } from './BotQnATab';
@@ -416,8 +417,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <X className="w-5 h-5" />
           </button>
 
-          <div className="w-16 h-16 rounded-2xl bg-emerald-950 text-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg border border-emerald-800">
-            <Lock className="w-8 h-8" />
+          <div className="w-16 h-16 rounded-2xl bg-emerald-950 text-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg border border-emerald-800 overflow-hidden">
+            {db.settings.logoUrl ? (
+              <img
+                src={formatDriveImageUrl(db.settings.logoUrl)}
+                alt={db.settings.foundationName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <Lock className="w-8 h-8" />
+            )}
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
@@ -527,8 +539,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span className="text-xs font-bold font-serif-bn">মেনু</span>
           </button>
 
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-900 flex items-center justify-center text-emerald-300 font-bold border border-emerald-700 shrink-0">
-            ☪
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-900 flex items-center justify-center text-emerald-300 font-bold border border-emerald-700 shrink-0 overflow-hidden">
+            {db.settings.logoUrl ? (
+              <img
+                src={formatDriveImageUrl(db.settings.logoUrl)}
+                alt="Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              '☪'
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-xs sm:text-base md:text-lg font-bold text-white leading-tight truncate">
@@ -1065,6 +1088,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4 text-xs font-sans-bn">
+                  {/* Unified Logo & Icon URL Section */}
+                  <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <label className="block font-bold text-emerald-950 mb-1 font-serif-bn text-sm flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-emerald-700" />
+                          <span>ফাউন্ডেশন লোগো ও আইকন ইমেজ URL (একত্রিত লোগো সিস্টেম)</span>
+                        </label>
+                        <p className="text-[11px] text-emerald-800/80 mb-2">
+                          এখানে যেকোনো ইমেজ বা গুগল ড্রাইভের শেয়ার লিংক দিলে স্বয়ংক্রিয়ভাবে হেডার, ফুটার, এডমিন প্যানেল, চ্যাটবট ও ব্রাউজার ট্যাবের সকল আইকন ও লোগো আপডেট হয়ে যাবে।
+                        </p>
+                        <input
+                          type="text"
+                          placeholder="ইমেজ লিংক দিন (যেমন: https://drive.google.com/file/d/... অথবা https://.../logo.png)"
+                          value={settingsForm.logoUrl || ''}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, logoUrl: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-white border border-emerald-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 font-sans"
+                        />
+                      </div>
+
+                      {/* Live Thumbnail Preview */}
+                      <div className="flex flex-col items-center gap-1.5 shrink-0 self-center sm:self-end">
+                        <span className="text-[10px] font-bold text-slate-500 font-serif-bn">লোগো প্রিভিউ:</span>
+                        <div className="w-14 h-14 rounded-xl border-2 border-emerald-600 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                          {settingsForm.logoUrl ? (
+                            <img
+                              src={formatDriveImageUrl(settingsForm.logoUrl)}
+                              alt="Logo Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span className="text-2xl text-emerald-700">☪</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-bold text-slate-800 mb-1 font-serif-bn">ফাউন্ডেশনের নাম</label>

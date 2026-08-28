@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NoticeItem } from '../types';
 import { PageHeader } from './PageHeader';
 import { 
@@ -10,20 +10,116 @@ import {
   ExternalLink, 
   AlertCircle,
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface NoticesSectionProps {
   notices: NoticeItem[];
+  initialNoticeId?: string | null;
   onNavigate?: (tabId: string) => void;
+  onClearNotice?: () => void;
 }
 
-export const NoticesSection: React.FC<NoticesSectionProps> = ({ notices, onNavigate }) => {
+export const NoticesSection: React.FC<NoticesSectionProps> = ({ 
+  notices, 
+  initialNoticeId,
+  onNavigate,
+  onClearNotice 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeNotice, setActiveNotice] = useState<NoticeItem | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const activeNotices = notices.filter(n => n.active);
+
+  // Deep linking: Open notice modal automatically
+  useEffect(() => {
+    if (!notices || notices.length === 0) return;
+
+    const findAndSetNotice = (targetId: string) => {
+      const match = notices.find(n => n.id === targetId || n.title.trim().toLowerCase() === decodeURIComponent(targetId).trim().toLowerCase());
+      if (match) {
+        setActiveNotice(match);
+      }
+    };
+
+    if (initialNoticeId) {
+      findAndSetNotice(initialNoticeId);
+      return;
+    }
+
+    const hash = window.location.hash || '';
+    const hashMatch = hash.match(/^#notice-(.+)$/);
+    if (hashMatch && hashMatch[1]) {
+      findAndSetNotice(decodeURIComponent(hashMatch[1]));
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const noticeParam = params.get('notice');
+      if (noticeParam) {
+        findAndSetNotice(decodeURIComponent(noticeParam));
+      }
+    } catch (e) {}
+  }, [notices, initialNoticeId]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleOpenNotice = (notice: NoticeItem) => {
+    setActiveNotice(notice);
+    try {
+      const shareUrl = `${window.location.pathname}?tab=notices&notice=${encodeURIComponent(notice.id)}#notice-${encodeURIComponent(notice.id)}`;
+      window.history.replaceState(null, '', shareUrl);
+    } catch (e) {}
+  };
+
+  const handleCloseNotice = () => {
+    setActiveNotice(null);
+    onClearNotice?.();
+    try {
+      const cleanUrl = `${window.location.pathname}?tab=notices`;
+      window.history.replaceState(null, '', cleanUrl);
+    } catch (e) {}
+  };
+
+  const handleCopyLink = async (notice: NoticeItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=notices&notice=${encodeURIComponent(notice.id)}#notice-${encodeURIComponent(notice.id)}`;
+
+    let copied = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      }
+    } catch (err) {}
+
+    if (!copied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {}
+    }
+
+    setCopiedId(notice.id);
+    showToast(`"${notice.title}" এর সরাসরি পড়ার লিংক কপি হয়েছে!`);
+    setTimeout(() => setCopiedId(null), 3000);
+  };
 
   const categories = ['all', ...Array.from(new Set(activeNotices.map(n => n.category)))];
 
@@ -140,13 +236,22 @@ export const NoticesSection: React.FC<NoticesSectionProps> = ({ notices, onNavig
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2">
-                  <button
-                    onClick={() => setActiveNotice(notice)}
-                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 font-serif-bn underline underline-offset-4 cursor-pointer"
-                  >
-                    বিস্তারিত পড়ুন →
-                  </button>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2 gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenNotice(notice)}
+                      className="text-xs font-bold text-emerald-700 hover:text-emerald-900 font-serif-bn underline underline-offset-4 cursor-pointer"
+                    >
+                      বিস্তারিত পড়ুন →
+                    </button>
+                    <button
+                      onClick={(e) => handleCopyLink(notice, e)}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                      title="নোটিসের সরাসরি লিংক কপি করুন"
+                    >
+                      {copiedId === notice.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     {notice.fileUrl && (
@@ -193,7 +298,7 @@ export const NoticesSection: React.FC<NoticesSectionProps> = ({ notices, onNavig
                 <span className="text-xs text-slate-500 font-sans-bn">{activeNotice.date}</span>
               </div>
               <button
-                onClick={() => setActiveNotice(null)}
+                onClick={handleCloseNotice}
                 className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 ✕
@@ -208,27 +313,44 @@ export const NoticesSection: React.FC<NoticesSectionProps> = ({ notices, onNavig
               {activeNotice.description}
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
-              {activeNotice.fileUrl && (
-                <a
-                  href={activeNotice.fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>সংযুক্ত ফাইল ডাউনলোড করুন</span>
-                </a>
-              )}
+            <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
               <button
-                onClick={() => setActiveNotice(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                onClick={(e) => handleCopyLink(activeNotice, e)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
-                বন্ধ করুন
+                {copiedId === activeNotice.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedId === activeNotice.id ? 'কপি হয়েছে' : 'লিংক কপি করুন'}</span>
               </button>
+
+              <div className="flex items-center gap-2">
+                {activeNotice.fileUrl && (
+                  <a
+                    href={activeNotice.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>ফাইল ডাউনলোড</span>
+                  </a>
+                )}
+                <button
+                  onClick={handleCloseNotice}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                >
+                  বন্ধ করুন
+                </button>
+              </div>
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-slate-900 text-white text-xs sm:text-sm font-serif-bn shadow-2xl border border-slate-700 animate-bounce">
+          {toastMessage}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NoticeItem } from '../types';
-import { X, Bell, Calendar, Search, FileText, ExternalLink, ChevronRight, AlertCircle } from 'lucide-react';
+import { X, Bell, Calendar, Search, FileText, ExternalLink, ChevronRight, AlertCircle, Copy, Check } from 'lucide-react';
 
 interface NoticeModalProps {
   notices: NoticeItem[];
@@ -15,12 +15,43 @@ export const NoticeModal: React.FC<NoticeModalProps> = ({
 }) => {
   const [selected, setSelected] = useState<NoticeItem | null>(initialSelected || (notices.length > 0 ? notices[0] : null));
   const [searchTerm, setSearchTerm] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const filteredNotices = notices.filter(n => 
     n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     n.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     n.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleCopy = async () => {
+    if (!selected) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=notices&notice=${encodeURIComponent(selected.id)}#notice-${encodeURIComponent(selected.id)}`;
+    
+    let isCopied = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        isCopied = true;
+      }
+    } catch (err) {}
+
+    if (!isCopied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {}
+    }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-fade-in">
@@ -162,7 +193,17 @@ export const NoticeModal: React.FC<NoticeModalProps> = ({
               </div>
             )}
 
-            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+              {selected ? (
+                <button
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'কপি হয়েছে' : 'লিংক কপি করুন'}</span>
+                </button>
+              ) : <div />}
+
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors cursor-pointer"

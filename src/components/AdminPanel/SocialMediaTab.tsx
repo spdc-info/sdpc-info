@@ -127,7 +127,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       instagramUrl: quickIg.trim(),
       twitterUrl: quickTw.trim()
     };
-    onUpdateSettings(newSettings);
+    if (onUpdateSettings && settings) {
+      onUpdateSettings(newSettings);
+    }
 
     // Also update existing socialLinks entries if matched
     let updatedList = [...socialLinks];
@@ -201,13 +203,13 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
           <span className="text-[11px] text-slate-500 font-sans-bn block mb-1">ফেসবুক ও ইউটিউব</span>
           <p className="text-xs font-bold text-slate-700 mt-1 truncate">
-            {settings.facebookUrl ? '✅ ফেসবুক যুক্ত' : '⚠️ ফেসবুক বাকি'}
+            {settings?.facebookUrl ? '✅ ফেসবুক যুক্ত' : '⚠️ ফেসবুক বাকি'}
           </p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
           <span className="text-[11px] text-slate-500 font-sans-bn block mb-1">হোয়াটসঅ্যাপ হেল্পলাইন</span>
           <p className="text-xs font-bold text-emerald-600 mt-1 truncate">
-            {settings.whatsapp || 'যুক্ত নেই'}
+            {settings?.whatsapp || 'যুক্ত নেই'}
           </p>
         </div>
       </div>
@@ -502,7 +504,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
         {/* Footer Dark Preview Box */}
         <div 
           className="p-6 rounded-2xl text-white space-y-3"
-          style={{ backgroundColor: settings.footerBgColor || '#022c22' }}
+          style={{ backgroundColor: settings?.footerBgColor || '#022c22' }}
         >
           <span className="text-[11px] text-amber-300 uppercase tracking-wider font-bold">
             ফুটার সেকশন সোশ্যাল আইকন প্রিভিউ

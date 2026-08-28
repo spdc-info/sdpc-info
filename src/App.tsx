@@ -26,11 +26,90 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [selectedDonationProject, setSelectedDonationProject] = useState<string>('সাধারণ সদকা ও যাকাত তহবিল');
+  const [targetArticleId, setTargetArticleId] = useState<string | null>(null);
+  const [targetNoticeId, setTargetNoticeId] = useState<string | null>(null);
+  const [targetActivityId, setTargetActivityId] = useState<string | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // Parse deep link on initial load & popstate/hashchange
+  const processLocationDeepLink = useCallback(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tabParam = searchParams.get('tab');
+      const articleParam = searchParams.get('article') || searchParams.get('blog');
+      const noticeParam = searchParams.get('notice');
+      const activityParam = searchParams.get('activity') || searchParams.get('project');
+
+      const hash = window.location.hash || '';
+
+      if (articleParam) {
+        setActiveTab('blogs');
+        setTargetArticleId(decodeURIComponent(articleParam));
+        return;
+      }
+
+      if (noticeParam) {
+        setActiveTab('notices');
+        setTargetNoticeId(decodeURIComponent(noticeParam));
+        return;
+      }
+
+      if (activityParam) {
+        setActiveTab('activities');
+        setTargetActivityId(decodeURIComponent(activityParam));
+        return;
+      }
+
+      if (hash.startsWith('#blog-')) {
+        setActiveTab('blogs');
+        setTargetArticleId(decodeURIComponent(hash.replace('#blog-', '')));
+        return;
+      }
+
+      if (hash.startsWith('#notice-')) {
+        setActiveTab('notices');
+        setTargetNoticeId(decodeURIComponent(hash.replace('#notice-', '')));
+        return;
+      }
+
+      if (hash.startsWith('#activity-')) {
+        setActiveTab('activities');
+        setTargetActivityId(decodeURIComponent(hash.replace('#activity-', '')));
+        return;
+      }
+
+      if (tabParam) {
+        setActiveTab(tabParam);
+        return;
+      }
+
+      if (hash && hash.length > 1) {
+        const cleanHash = hash.replace('#', '');
+        const validTabs = ['home', 'about', 'activities', 'notices', 'members', 'blogs', 'blog', 'gallery', 'join', 'volunteer', 'contact'];
+        if (validTabs.includes(cleanHash)) {
+          setActiveTab(cleanHash === 'blog' ? 'blogs' : cleanHash);
+        }
+      }
+    } catch (e) {
+      console.error('Deep link parse error', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    processLocationDeepLink();
+
+    const handleLocationChange = () => processLocationDeepLink();
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, [processLocationDeepLink]);
 
   // Perform single API call sync from Google Sheets
   const triggerSync = useCallback(async (showFeedback = true) => {
@@ -81,8 +160,16 @@ export default function App() {
 
   // Navigate to any page and scroll to top
   const handleNavigate = (tabId: string) => {
-    setActiveTab(tabId);
+    const normalizedTab = tabId === 'blog' ? 'blogs' : tabId;
+    setActiveTab(normalizedTab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      const newUrl = normalizedTab === 'home' 
+        ? window.location.pathname 
+        : `${window.location.pathname}?tab=${normalizedTab}`;
+      window.history.pushState(null, '', newUrl);
+    } catch (e) {}
   };
 
   // Update complete database state (from Admin Panel)
@@ -221,7 +308,9 @@ export default function App() {
           <div className="py-8 space-y-8 animate-fade-in">
             <ActivitiesSection
               activities={db.activities}
+              initialActivityId={targetActivityId}
               onDonateClick={handleDonateProjectSelect}
+              onClearActivity={() => setTargetActivityId(null)}
             />
           </div>
         );
@@ -231,7 +320,9 @@ export default function App() {
           <div className="py-8 space-y-8 animate-fade-in">
             <NoticesSection
               notices={db.notices}
+              initialNoticeId={targetNoticeId}
               onNavigate={handleNavigate}
+              onClearNotice={() => setTargetNoticeId(null)}
             />
           </div>
         );
@@ -247,7 +338,11 @@ export default function App() {
       case 'blogs':
         return (
           <div className="py-8 space-y-8 animate-fade-in">
-            <BlogSection blogs={db.blogs} />
+            <BlogSection 
+              blogs={db.blogs} 
+              initialArticleId={targetArticleId}
+              onClearArticle={() => setTargetArticleId(null)}
+            />
           </div>
         );
 
@@ -311,7 +406,9 @@ export default function App() {
             {/* 4. Featured Activities */}
             <ActivitiesSection
               activities={db.activities}
+              initialActivityId={targetActivityId}
               onDonateClick={handleDonateProjectSelect}
+              onClearActivity={() => setTargetActivityId(null)}
             />
 
             {/* 5. About Section Highlight */}
@@ -324,7 +421,11 @@ export default function App() {
             <MemberSlider members={db.members} />
 
             {/* 7. Recent Islamic Blogs & Articles */}
-            <BlogSection blogs={db.blogs} />
+            <BlogSection 
+              blogs={db.blogs} 
+              initialArticleId={targetArticleId}
+              onClearArticle={() => setTargetArticleId(null)}
+            />
 
             {/* 8. Gallery Highlights */}
             <GallerySection gallery={db.gallery} />
