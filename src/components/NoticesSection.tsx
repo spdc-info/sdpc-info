@@ -37,14 +37,16 @@ export const NoticesSection: React.FC<NoticesSectionProps> = ({ notices, onNavig
   return (
     <div id="notices" className="space-y-12 animate-fade-in">
       
-      {/* Page Header */}
-      <PageHeader
-        title="ফাউন্ডেশন নোটিস বোর্ড ও বিজ্ঞপ্তি"
-        subtitle="আমাদের সকল প্রাতিষ্ঠানিক ঘোষণা, জরুরি বিজ্ঞপ্তি, কর্মসূচির সময়সূচি ও নোটিফিকেশন"
-        category="অফিসিয়াল নোটিস"
-        badgeIcon={Bell}
-        onNavigateHome={() => onNavigate?.('home')}
-      />
+      {/* Page Header - Centered Content */}
+      <div className="text-center">
+        <PageHeader
+          title="নোটিস বোর্ড ও বিজ্ঞপ্তি"
+          subtitle="আমাদের সকল প্রাতিষ্ঠানিক ঘোষণা, জরুরি বিজ্ঞপ্তি, কর্মসূচির সময়সূচি ও নোটিফিকেশন"
+          category="অফিসিয়াল নোটিস"
+          badgeIcon={Bell}
+          onNavigateHome={() => onNavigate?.('home')}
+        />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
