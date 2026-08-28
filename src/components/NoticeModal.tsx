@@ -27,24 +27,23 @@ export const NoticeModal: React.FC<NoticeModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between border-b border-emerald-700">
-          <div className="flex items-center gap-3">
+        <div className="px-6 py-4 bg-emerald-800 text-white flex flex-col items-center justify-center text-center border-b border-emerald-700 relative">
+          <div className="flex flex-col items-center gap-2">
             <div className="p-2 rounded-xl bg-emerald-700 text-amber-300">
               <Bell className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold font-serif-bn">ফাউন্ডেশন নোটিস বোর্ড</h3>
+              <h3 className="text-lg font-bold font-serif-bn">নোটিস বোর্ড</h3>
               <p className="text-xs text-emerald-200">সকল গুরুত্বপূর্ণ বিজ্ঞপ্তি ও আপডেটসমূহ</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-emerald-700/60 hover:bg-emerald-700 text-white transition-colors cursor-pointer"
+            className="p-2 rounded-lg bg-emerald-700/60 hover:bg-emerald-700 text-white transition-colors cursor-pointer absolute right-6 top-1/2 -translate-y-1/2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-
         {/* Search Bar */}
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <div className="relative">
