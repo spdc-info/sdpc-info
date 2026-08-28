@@ -36,7 +36,8 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
 
   // Initialize with Islamic Salam Welcome message
   const defaultWelcome = db.settings.botWelcomeMsg || 
-    `আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু! 🌙\n\nআমি **${db.settings.foundationName}**-এর ইসলামিক এআই সহকারী। আপনি নিচের **'মেনু (Menu)'** ও কুইক বাটনগুলো থেকে যেকোনো বিষয়ে সহজে জানতে পারেন অথবা আপনার প্রশ্নটি নিচে লিখে পাঠাতে পারেন।`;
+    `আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু!🌸 \n\nআমি **${db.settings.foundationName}**-এর ইসলামিক এআই সহকারী। দ্বীনের দাওয়াহ, ভ্রাতৃত্ব ও মানবসেবায় নিয়োজিত কার্যক্রমে আপনাকে জানাই আন্তরিক স্বাগতম। আপনি নিচের মেনু ট্যাবগুলো থেকে আপনার প্রয়োজনীয় বিষয় নির্বাচন করতে পারেন। অথবা আপনার যেকোনো প্রশ্ন লিখে পাঠান—আমি যথাসাধ্য নির্ভরযোগ্য ও উপকারী তথ্য দিয়ে আপনাকে সহযোগিতা করার চেষ্টা করব।
+🤲 আল্লাহ আমাদের সকল প্রচেষ্টা কবুল করুন। আমীন। `;
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -69,7 +70,7 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
   const defaultQuickMenus = [
     { id: 'qm-1', label: '💳 ব্যাংক ও বিকাশ', query: 'দান ও যাকাত প্রদানের একাউন্ট নম্বর' },
     { id: 'qm-2', label: '🌟 প্রকল্পসমূহ', query: 'চলমান কার্যক্রম ও প্রকল্পসমূহ' },
-    { id: 'qm-3', label: '🤝 ভলান্টিয়ার', query: 'স্বেচ্ছাসেবক হিসেবে যোগদানের নিয়ম' },
+    { id: 'qm-3', label: '🤝 সদস্য', query: ' সদস্য হিসেবে যোগদানের নিয়ম' },
     { id: 'qm-4', label: '📢 নোটিস বোর্ড', query: 'সর্বশেষ নোটিস ও বিজ্ঞপ্তি' },
     { id: 'qm-5', label: '📞 হটলাইন', query: 'অফিস ঠিকানা ও ফোন নম্বর' }
   ];
@@ -160,7 +161,7 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
                 <Bot className="w-5 h-5 text-amber-300 relative z-10 group-hover:scale-110 transition-transform" />
                 
                 {/* Sparkle badge on corner */}
-                <Sparkles className="w-3 h-3 text-amber-200 absolute top-1 right-1 animate-pulse z-10" />
+                
               </div>
             </div>
 
@@ -219,7 +220,7 @@ export const IslamicAIChatbot: React.FC<IslamicAIChatbotProps> = ({ db, onNaviga
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-200/80 font-sans-bn mt-0.5">
-                  গুগল শিট নলেজ বেস ও রিয়েলটাইম সহায়তা
+                 ওয়েবসাইট বিষয়ে যেকোনো প্রশ্ন বাংলা ভাষায় করতে পারেন।
                 </p>
               </div>
             </div>
