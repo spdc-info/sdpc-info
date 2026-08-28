@@ -99,7 +99,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides, onNavigate }) =>
       <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 text-center text-white">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 text-emerald-300 text-xs sm:text-sm font-medium mb-3 sm:mb-4 animate-fade-in">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>বিসমিল্লাহির রাহমানির রাহিম</span>
+          {/* স্লাইডার এ সবুজ বক্স এর ভিতর কোনো লেখা যুক্ত করতে চাইলে এখানে সেটা করতে পারবেন। <span> এখানে লেখা দিলেই হবে </span>*/}
         </div>
 
         <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold font-serif-bn leading-tight sm:leading-tight mb-3 sm:mb-4 text-white drop-shadow-md max-w-3xl mx-auto">
@@ -123,13 +123,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides, onNavigate }) =>
             </button>
           )}
 
-          <button
-            onClick={() => handleCtaClick('join')}
-            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3.5 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 backdrop-blur-md font-semibold font-serif-bn text-xs sm:text-sm md:text-base hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          >
-            <Heart className="w-4 h-4 text-rose-400" />
-            <span>দান করুন</span>
-          </button>
+
         </div>
       </div>
 
