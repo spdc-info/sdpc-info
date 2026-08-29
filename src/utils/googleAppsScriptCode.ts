@@ -1,18 +1,18 @@
 /**
  * Google Sheet URL & ID provided by the user:
- * URL: https://docs.google.com/spreadsheets/d/1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ/edit?usp=drivesdk
- * ID: 1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ
+ * URL: https://docs.google.com/spreadsheets/d/17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc/edit?usp=drivesdk
+ * ID: 17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc
  */
-export const TARGET_SPREADSHEET_ID = "1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ";
-export const TARGET_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ/edit?usp=drivesdk";
-export const DEFAULT_DEPLOYED_APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlr5dtZq3FmUdnAVPQ8tNfjucWYKDEYgy-Xj0DNpA6eBdsQJ4BXCMamsZAiI_lkT1yxA/exec";
+export const TARGET_SPREADSHEET_ID = "17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc";
+export const TARGET_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc/edit?usp=drivesdk";
+export const DEFAULT_DEPLOYED_APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKn-kLNTL-5KZojCg9m9Uca0YmrgMrF3-MCgJy3Ik00Rfee-G01Grqp2rxa31UNfwziA/exec";
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================================
  * ইসলামী ধারার ফাউন্ডেশন - Google Apps Script Backend (Code.gs)
  * =========================================================================================
- * স্প্রেডশীট লিংক: https://docs.google.com/spreadsheets/d/1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ/edit?usp=drivesdk
- * স্প্রেডশীট আইডি: 1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ
+ * স্প্রেডশীট লিংক: https://docs.google.com/spreadsheets/d/17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc/edit?usp=drivesdk
+ * স্প্রেডশীট আইডি: 17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc
  * 
  * গুরুত্বপূর্ণ বৈশিষ্ট্যসমূহ:
  * ১. getSheet (গেট শীট): কোনো শীট না থাকলে স্বয়ংক্রিয়ভাবে নতুন ট্যাব তৈরি করে।
@@ -22,7 +22,7 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================================
  */
 
-var SPREADSHEET_ID = "1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ";
+var SPREADSHEET_ID = "17mdkrESry8i2qZ0nOh7arklYz_62bbqs2DGldgCWybc";
 
 /**
  * স্প্রেডশীট অবজেক্ট পাওয়ার ফাংশন
@@ -273,22 +273,31 @@ function doPost(e) {
 
     if (action === "syncAll") {
       if (payload.settings) saveSettings(ss, payload.settings);
-      if (payload.slides) saveArrayToSheet(ss, "Slides", payload.slides);
-      if (payload.notices) saveArrayToSheet(ss, "Notices", payload.notices);
-      if (payload.activities) saveArrayToSheet(ss, "Activities", payload.activities);
-      if (payload.blogs) saveArrayToSheet(ss, "Blogs", payload.blogs);
-      if (payload.gallery) saveArrayToSheet(ss, "Gallery", payload.gallery);
-      if (payload.members) saveArrayToSheet(ss, "Members", payload.members);
-      if (payload.customFields) saveArrayToSheet(ss, "CustomFields", payload.customFields);
-      if (payload.botQnA) saveArrayToSheet(ss, "BotQnA", payload.botQnA);
-      if (payload.socialLinks) saveArrayToSheet(ss, "SocialLinks", payload.socialLinks);
-      if (payload.missionQuotes) saveArrayToSheet(ss, "MissionQuotes", payload.missionQuotes);
+      if (payload.slides !== undefined) saveArrayToSheet(ss, "Slides", payload.slides);
+      if (payload.notices !== undefined) saveArrayToSheet(ss, "Notices", payload.notices);
+      if (payload.activities !== undefined) saveArrayToSheet(ss, "Activities", payload.activities);
+      if (payload.blogs !== undefined) saveArrayToSheet(ss, "Blogs", payload.blogs);
+      if (payload.gallery !== undefined) saveArrayToSheet(ss, "Gallery", payload.gallery);
+      if (payload.members !== undefined) saveArrayToSheet(ss, "Members", payload.members);
+      if (payload.volunteers !== undefined) saveArrayToSheet(ss, "Volunteers", payload.volunteers);
+      if (payload.messages !== undefined) saveArrayToSheet(ss, "Messages", payload.messages);
+      if (payload.donations !== undefined) saveArrayToSheet(ss, "Donations", payload.donations);
+      if (payload.customFields !== undefined) saveArrayToSheet(ss, "CustomFields", payload.customFields);
+      if (payload.botQnA !== undefined) saveArrayToSheet(ss, "BotQnA", payload.botQnA);
+      if (payload.socialLinks !== undefined) saveArrayToSheet(ss, "SocialLinks", payload.socialLinks);
+      if (payload.missionQuotes !== undefined) saveArrayToSheet(ss, "MissionQuotes", payload.missionQuotes);
     } else if (action === "addVolunteer") {
       appendRowToSheet(ss, "Volunteers", payload);
     } else if (action === "addMessage") {
       appendRowToSheet(ss, "Messages", payload);
     } else if (action === "addDonation") {
       appendRowToSheet(ss, "Donations", payload);
+    } else if (action === "saveVolunteers") {
+      saveArrayToSheet(ss, "Volunteers", payload);
+    } else if (action === "saveMessages") {
+      saveArrayToSheet(ss, "Messages", payload);
+    } else if (action === "saveDonations") {
+      saveArrayToSheet(ss, "Donations", payload);
     } else if (action === "updateSettings") {
       saveSettings(ss, payload);
     } else if (action === "saveNotices") {
@@ -307,6 +316,10 @@ function doPost(e) {
       saveArrayToSheet(ss, "CustomFields", payload);
     } else if (action === "saveMissionQuotes") {
       saveArrayToSheet(ss, "MissionQuotes", payload);
+    } else if (action === "saveBotQnA") {
+      saveArrayToSheet(ss, "BotQnA", payload);
+    } else if (action === "saveSocialLinks") {
+      saveArrayToSheet(ss, "SocialLinks", payload);
     }
 
     return ContentService.createTextOutput(JSON.stringify({
@@ -539,9 +552,19 @@ function saveSettings(ss, settingsObj) {
 
 function saveArrayToSheet(ss, sheetName, items) {
   try {
-    if (!items || !Array.isArray(items) || items.length === 0) return;
+    if (!items || !Array.isArray(items)) return;
     var sheet = getSheet(ss, sheetName);
     if (!sheet) return;
+
+    if (items.length === 0) {
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastRow > 1 && lastCol > 0) {
+        sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+      }
+      return;
+    }
+
     sheet.clear();
     var headers = Object.keys(items[0]);
     sheet.appendRow(headers);

@@ -54,10 +54,8 @@ export const BotQnATab: React.FC<BotQnATabProps> = ({
   });
 
   const handleDeleteItem = (id: string) => {
-    if (window.confirm('আপনি কি এই প্রশ্নোত্তরটি ডিলিট করতে চান?')) {
-      const updated = botQnA.filter(q => q.id !== id);
-      onChangeBotQnA(updated);
-    }
+    const updated = botQnA.filter(q => q.id !== id);
+    onChangeBotQnA(updated);
   };
 
   const handleToggleActive = (id: string) => {

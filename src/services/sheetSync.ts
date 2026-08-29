@@ -22,12 +22,19 @@ export function getLocalDatabase(): DatabaseState {
       mergedSettings.adminPassword = String(mergedSettings.adminPassword);
     }
 
-    // Ensure default deployed script URL is used if empty or whitespace
-    if (!mergedSettings.scriptUrl || !String(mergedSettings.scriptUrl).trim()) {
+    // Ensure default deployed script URL is used if empty, whitespace, or matching older default
+    const OLD_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlr5dtZq3FmUdnAVPQ8tNfjucWYKDEYgy-Xj0DNpA6eBdsQJ4BXCMamsZAiI_lkT1yxA/exec";
+    if (!mergedSettings.scriptUrl || !String(mergedSettings.scriptUrl).trim() || mergedSettings.scriptUrl === OLD_SCRIPT_URL) {
       mergedSettings.scriptUrl = INITIAL_DATABASE_STATE.settings.scriptUrl;
     }
-    if (!mergedSettings.googleSheetUrl || !String(mergedSettings.googleSheetUrl).trim()) {
+    if (!mergedSettings.googleSheetUrl || !String(mergedSettings.googleSheetUrl).trim() || mergedSettings.googleSheetUrl === OLD_SCRIPT_URL) {
       mergedSettings.googleSheetUrl = INITIAL_DATABASE_STATE.settings.googleSheetUrl || INITIAL_DATABASE_STATE.settings.scriptUrl;
+    }
+
+    const OLD_SHEET_ID = "1mN4KQTrnqhX0oiykGI1VIBvmAxag0DsdXSh1A6N17KQ";
+    if (!mergedSettings.spreadsheetUrl || !String(mergedSettings.spreadsheetUrl).trim() || mergedSettings.spreadsheetId === OLD_SHEET_ID) {
+      mergedSettings.spreadsheetUrl = INITIAL_DATABASE_STATE.settings.spreadsheetUrl;
+      mergedSettings.spreadsheetId = INITIAL_DATABASE_STATE.settings.spreadsheetId;
     }
 
     return {
@@ -63,19 +70,25 @@ export async function syncFromGoogleSheets(scriptUrl: string): Promise<{ success
   const cleanUrl = scriptUrl.trim();
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     const response = await fetch(cleanUrl, {
       method: 'GET',
       redirect: 'follow',
-      headers: {
-        'Accept': 'application/json'
-      }
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+      return {
+        success: false,
+        error: `HTTP Error ${response.status}: ${response.statusText}`
+      };
     }
 
-    const resJson = await response.json();
+    const resJson = await response.json().catch(() => null);
 
     if (resJson && resJson.status === 'success' && resJson.data) {
       const fetched = resJson.data;
@@ -92,32 +105,35 @@ export async function syncFromGoogleSheets(scriptUrl: string): Promise<{ success
           ...fetchedSettings,
           scriptUrl: cleanUrl // retain existing scriptUrl
         },
-        slides: Array.isArray(fetched.slides) && fetched.slides.length > 0 ? fetched.slides : current.slides,
-        notices: Array.isArray(fetched.notices) && fetched.notices.length > 0 ? fetched.notices : current.notices,
-        activities: Array.isArray(fetched.activities) && fetched.activities.length > 0 ? fetched.activities : current.activities,
-        blogs: Array.isArray(fetched.blogs) && fetched.blogs.length > 0 ? fetched.blogs : current.blogs,
-        gallery: Array.isArray(fetched.gallery) && fetched.gallery.length > 0 ? fetched.gallery : current.gallery,
-        members: Array.isArray(fetched.members) && fetched.members.length > 0 ? fetched.members : current.members,
-        volunteers: Array.isArray(fetched.volunteers) && fetched.volunteers.length > 0 ? fetched.volunteers : current.volunteers,
-        messages: Array.isArray(fetched.messages) && fetched.messages.length > 0 ? fetched.messages : current.messages,
-        donations: Array.isArray(fetched.donations) && fetched.donations.length > 0 ? fetched.donations : current.donations,
-        customFields: Array.isArray(fetched.customFields) && fetched.customFields.length > 0 ? fetched.customFields : current.customFields,
-        botQnA: Array.isArray(fetched.botQnA) && fetched.botQnA.length > 0 ? fetched.botQnA : current.botQnA,
-        socialLinks: Array.isArray(fetched.socialLinks) && fetched.socialLinks.length > 0 ? fetched.socialLinks : current.socialLinks,
-        missionQuotes: Array.isArray(fetched.missionQuotes) && fetched.missionQuotes.length > 0 ? fetched.missionQuotes : current.missionQuotes,
+        slides: Array.isArray(fetched.slides) ? fetched.slides : current.slides,
+        notices: Array.isArray(fetched.notices) ? fetched.notices : current.notices,
+        activities: Array.isArray(fetched.activities) ? fetched.activities : current.activities,
+        blogs: Array.isArray(fetched.blogs) ? fetched.blogs : current.blogs,
+        gallery: Array.isArray(fetched.gallery) ? fetched.gallery : current.gallery,
+        members: Array.isArray(fetched.members) ? fetched.members : current.members,
+        volunteers: Array.isArray(fetched.volunteers) ? fetched.volunteers : current.volunteers,
+        messages: Array.isArray(fetched.messages) ? fetched.messages : current.messages,
+        donations: Array.isArray(fetched.donations) ? fetched.donations : current.donations,
+        customFields: Array.isArray(fetched.customFields) ? fetched.customFields : current.customFields,
+        botQnA: Array.isArray(fetched.botQnA) ? fetched.botQnA : current.botQnA,
+        socialLinks: Array.isArray(fetched.socialLinks) ? fetched.socialLinks : current.socialLinks,
+        missionQuotes: Array.isArray(fetched.missionQuotes) ? fetched.missionQuotes : current.missionQuotes,
         lastSyncedAt: new Date().toISOString()
       };
 
       saveLocalDatabase(mergedDb);
       return { success: true, data: mergedDb };
     } else {
-      throw new Error(resJson?.message || 'গুগল শিট থেকে সঠিক ফরমেটে ডাটা আসেনি।');
+      return {
+        success: false,
+        error: resJson?.message || 'গুগল শিট থেকে ডাটা লোড হয়নি (লোকাল ডাটা সচল রয়েছে)।'
+      };
     }
   } catch (err: any) {
-    console.error('Google Sheets Sync Error:', err);
+    // Graceful fallback to local storage database silently without throwing unhandled console warnings
     return {
       success: false,
-      error: err.message || 'গুগল শিটের সাথে সংযোগ স্থাপন করা যায়নি।'
+      error: err?.message || 'গুগল শিটের সাথে সংযোগ স্থাপন করা যায়নি (লোকাল ডাটা সচল রয়েছে)।'
     };
   }
 }
@@ -149,9 +165,9 @@ export async function pushToGoogleSheets(scriptUrl: string, action: string, payl
       return { success: true, message: resJson.message || 'গুগল শিটে সফলভাবে সংরক্ষিত হয়েছে।' };
     }
     return { success: true, message: 'ডাটা পাঠানো হয়েছে।' };
-  } catch (err: any) {
-    console.warn('Push to Google Sheets fallback (saved locally):', err);
-    return { success: true, message: 'লোকাল স্টোরেজে সংরক্ষিত হয়েছে (গুগল শিট সংযোগ চেক করুন)।' };
+  } catch (_err: any) {
+    // Graceful fallback to local storage
+    return { success: true, message: 'লোকাল স্টোরেজে সংরক্ষিত হয়েছে।' };
   }
 }
 

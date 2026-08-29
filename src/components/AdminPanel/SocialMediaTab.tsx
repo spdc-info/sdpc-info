@@ -102,10 +102,8 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('আপনি কি এই সোশ্যাল প্ল্যাটফর্ম লিংকটি ডিলিট করতে চান?')) {
-      const updated = socialLinks.filter(s => s.id !== id);
-      onChangeSocialLinks(updated);
-    }
+    const updated = socialLinks.filter(s => s.id !== id);
+    onChangeSocialLinks(updated);
   };
 
   const handleCopy = (url: string, id: string) => {

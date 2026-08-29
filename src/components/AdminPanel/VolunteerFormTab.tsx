@@ -86,24 +86,22 @@ export const VolunteerFormTab: React.FC<VolunteerFormTabProps> = ({
   };
 
   const handleDeleteInterest = (item: string) => {
-    if (window.confirm(`আপনি কি "${item}" খাতটি বাদ দিতে চান?`)) {
-      const updated = interestAreas.filter(i => i !== item);
-      setInterestAreas(updated);
-      if (onUpdateSettings) {
-        onUpdateSettings({
-          ...(settings || {} as SiteSettings),
-          interestAreas: updated
-        });
-      }
-      showToast('আগ্রহের খাত ডিলিট হয়েছে');
+    const updated = interestAreas.filter(i => i !== item);
+    setInterestAreas(updated);
+    if (onUpdateSettings) {
+      onUpdateSettings({
+        ...(settings || {} as SiteSettings),
+        interestAreas: updated
+      });
     }
+    showToast(`"${item}" আগ্রহের খাত ডিলিট করা হয়েছে`);
   };
 
   const handleDeleteField = (id: string) => {
-    if (window.confirm('আপনি কি নিশ্চিত যে এই প্রশ্ন/ফিল্ডটি ডিলিট করতে চান?')) {
-      const updated = customFields.filter(f => f.id !== id);
-      onChangeCustomFields(updated);
-    }
+    const target = customFields.find(f => f.id === id);
+    const updated = customFields.filter(f => f.id !== id);
+    onChangeCustomFields(updated);
+    showToast(`ফিল্ড "${target?.label || ''}" ডিলিট করা হয়েছে`);
   };
 
   const handleToggleActive = (id: string) => {

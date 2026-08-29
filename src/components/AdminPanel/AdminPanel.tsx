@@ -17,7 +17,7 @@ import {
   MissionQuoteItem
 } from '../../types';
 import { GOOGLE_APPS_SCRIPT_CODE, pushToGoogleSheets } from '../../services/sheetSync';
-import { DEFAULT_DEPLOYED_APP_SCRIPT_URL } from '../../utils/googleAppsScriptCode';
+import { DEFAULT_DEPLOYED_APP_SCRIPT_URL, TARGET_SPREADSHEET_URL } from '../../utils/googleAppsScriptCode';
 import { formatDriveImageUrl } from '../../utils/imageHelper';
 import { ThemeTab } from './ThemeTab';
 import { VolunteerFormTab } from './VolunteerFormTab';
@@ -171,6 +171,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingSocial, setEditingSocial] = useState<{ isOpen: boolean; item: SocialLinkItem | null }>({ isOpen: false, item: null });
   const [editingQuote, setEditingQuote] = useState<{ isOpen: boolean; item: MissionQuoteItem | null }>({ isOpen: false, item: null });
 
+  // Custom In-App Deletion Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmButtonText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmButtonText: 'হ্যাঁ, ডিলিট করুন',
+    onConfirm: () => {}
+  });
+
+  const requestConfirmation = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    confirmButtonText = 'হ্যাঁ, ডিলিট করুন'
+  ) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      confirmButtonText,
+      onConfirm
+    });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   const showSaveSuccess = (msg = 'সফলভাবে সংরক্ষিত হয়েছে!') => {
     setSaveToast(msg);
     setTimeout(() => setSaveToast(null), 3000);
@@ -246,17 +280,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   /* ---------------- Handlers for Item Modals ---------------- */
   const handleSaveSlide = (saved: HeroSlide) => {
     const exists = slides.some(s => s.id === saved.id);
-    const updated = exists ? slides.map(s => s.id === saved.id ? saved : s) : [...slides, saved];
-    setSlides(updated);
-    commitToDb({ slides: updated }, 'স্লাইডার সফলভাবে সংরক্ষিত হয়েছে!');
+    const updated = exists ? slides.map(s => s.id === saved.id ? saved : f => f) : [...slides, saved];
+    const finalSlides = exists ? slides.map(s => s.id === saved.id ? saved : s) : [...slides, saved];
+    setSlides(finalSlides);
+    commitToDb({ slides: finalSlides }, 'স্লাইডার সফলভাবে সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveSlides', finalSlides);
+    }
   };
 
   const handleDeleteSlide = (id: string) => {
-    if (window.confirm('আপনি কি এই স্লাইডটি ডিলিট করতে চান?')) {
+    requestConfirmation('স্লাইডার ডিলিট', 'আপনি কি নিশ্চিত যে এই স্লাইডটি ডিলিট করতে চান?', async () => {
       const updated = slides.filter(s => s.id !== id);
       setSlides(updated);
       commitToDb({ slides: updated }, 'স্লাইড ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveSlides', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveNotice = (saved: NoticeItem) => {
@@ -264,14 +308,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? notices.map(n => n.id === saved.id ? saved : n) : [saved, ...notices];
     setNotices(updated);
     commitToDb({ notices: updated }, 'নোটিস সফলভাবে সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveNotices', updated);
+    }
   };
 
   const handleDeleteNotice = (id: string) => {
-    if (window.confirm('আপনি কি এই নোটিসটি ডিলিট করতে চান?')) {
+    requestConfirmation('নোটিস ডিলিট', 'আপনি কি নিশ্চিত যে এই নোটিসটি ডিলিট করতে চান?', async () => {
       const updated = notices.filter(n => n.id !== id);
       setNotices(updated);
       commitToDb({ notices: updated }, 'নোটিস ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveNotices', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveActivity = (saved: ActivityItem) => {
@@ -279,14 +332,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? activities.map(a => a.id === saved.id ? saved : a) : [saved, ...activities];
     setActivities(updated);
     commitToDb({ activities: updated }, 'কার্যক্রম সফলভাবে সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveActivities', updated);
+    }
   };
 
   const handleDeleteActivity = (id: string) => {
-    if (window.confirm('আপনি কি এই কার্যক্রমটি ডিলিট করতে চান?')) {
+    requestConfirmation('কার্যক্রম ডিলিট', 'আপনি কি নিশ্চিত যে এই কার্যক্রমটি ডিলিট করতে চান?', async () => {
       const updated = activities.filter(a => a.id !== id);
       setActivities(updated);
       commitToDb({ activities: updated }, 'কার্যক্রম ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveActivities', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveBlog = (saved: BlogPost) => {
@@ -294,14 +356,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? blogs.map(b => b.id === saved.id ? saved : b) : [saved, ...blogs];
     setBlogs(updated);
     commitToDb({ blogs: updated }, 'প্রবন্ধ সফলভাবে সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveBlogs', updated);
+    }
   };
 
   const handleDeleteBlog = (id: string) => {
-    if (window.confirm('আপনি কি এই প্রবন্ধটি ডিলিট করতে চান?')) {
+    requestConfirmation('প্রবন্ধ ডিলিট', 'আপনি কি নিশ্চিত যে এই প্রবন্ধটি ডিলিট করতে চান?', async () => {
       const updated = blogs.filter(b => b.id !== id);
       setBlogs(updated);
       commitToDb({ blogs: updated }, 'প্রবন্ধ ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveBlogs', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveMember = (saved: MemberItem) => {
@@ -309,14 +380,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? members.map(m => m.id === saved.id ? saved : m) : [...members, saved];
     setMembers(updated);
     commitToDb({ members: updated }, 'সদস্যের তথ্য সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveMembers', updated);
+    }
   };
 
   const handleDeleteMember = (id: string) => {
-    if (window.confirm('আপনি কি এই সদস্যের তথ্য ডিলিট করতে চান?')) {
+    requestConfirmation('সদস্য তথ্য ডিলিট', 'আপনি কি নিশ্চিত যে এই সদস্যের তথ্য ডিলিট করতে চান?', async () => {
       const updated = members.filter(m => m.id !== id);
       setMembers(updated);
       commitToDb({ members: updated }, 'সদস্যের তথ্য ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveMembers', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveGallery = (saved: GalleryItem) => {
@@ -324,14 +404,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? gallery.map(g => g.id === saved.id ? saved : g) : [saved, ...gallery];
     setGallery(updated);
     commitToDb({ gallery: updated }, 'গ্যালারি আইটেম সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveGallery', updated);
+    }
   };
 
   const handleDeleteGallery = (id: string) => {
-    if (window.confirm('আপনি কি এই গ্যালারি আইটেমটি ডিলিট করতে চান?')) {
+    requestConfirmation('গ্যালারি ছবি ডিলিট', 'আপনি কি নিশ্চিত যে এই গ্যালারি আইটেমটি ডিলিট করতে চান?', async () => {
       const updated = gallery.filter(g => g.id !== id);
       setGallery(updated);
       commitToDb({ gallery: updated }, 'গ্যালারি আইটেম ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveGallery', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveField = (saved: CustomFormField) => {
@@ -339,6 +428,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? customFields.map(f => f.id === saved.id ? saved : f) : [...customFields, saved];
     setCustomFields(updated);
     commitToDb({ customFields: updated }, 'ফরমের ফিল্ড সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveCustomFields', updated);
+    }
   };
 
   const handleSaveQnA = (saved: BotQnAItem) => {
@@ -346,6 +439,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? botQnA.map(q => q.id === saved.id ? saved : q) : [saved, ...botQnA];
     setBotQnA(updated);
     commitToDb({ botQnA: updated }, 'এআই প্রশ্নোত্তর সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveBotQnA', updated);
+    }
   };
 
   const handleSaveSocial = (saved: SocialLinkItem) => {
@@ -353,14 +450,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? socialLinks.map(s => s.id === saved.id ? saved : s) : [...socialLinks, saved];
     setSocialLinks(updated);
     commitToDb({ socialLinks: updated }, 'সোশ্যাল মিডিয়া লিংক সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveSocialLinks', updated);
+    }
   };
 
   const handleDeleteSocial = (id: string) => {
-    if (window.confirm('আপনি কি এই সোশ্যাল প্ল্যাটফর্ম লিংকটি ডিলিট করতে চান?')) {
+    requestConfirmation('সোশ্যাল লিংক ডিলিট', 'আপনি কি নিশ্চিত যে এই সোশ্যাল প্ল্যাটফর্ম লিংকটি ডিলিট করতে চান?', async () => {
       const updated = socialLinks.filter(s => s.id !== id);
       setSocialLinks(updated);
       commitToDb({ socialLinks: updated }, 'সোশ্যাল লিংক ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveSocialLinks', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   const handleSaveQuote = (saved: MissionQuoteItem) => {
@@ -368,39 +474,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const updated = exists ? missionQuotes.map(q => q.id === saved.id ? saved : q) : [saved, ...missionQuotes];
     setMissionQuotes(updated);
     commitToDb({ missionQuotes: updated }, 'উক্তি / হাদীস স্লাইডার সংরক্ষিত হয়েছে!');
+    const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+    if (scriptUrl) {
+      pushToGoogleSheets(scriptUrl, 'saveMissionQuotes', updated);
+    }
   };
 
   const handleDeleteQuote = (id: string) => {
-    if (window.confirm('আপনি কি এই উক্তি / আয়াতটি ডিলিট করতে চান?')) {
+    requestConfirmation('উক্তি / আয়াত ডিলিট', 'আপনি কি নিশ্চিত যে এই উক্তি বা আয়াতটি ডিলিট করতে চান?', async () => {
       const updated = missionQuotes.filter(q => q.id !== id);
       setMissionQuotes(updated);
       commitToDb({ missionQuotes: updated }, 'উক্তি ডিলিট করা হয়েছে');
-    }
+      const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+      if (scriptUrl) {
+        await pushToGoogleSheets(scriptUrl, 'saveMissionQuotes', updated);
+      }
+      closeConfirmModal();
+    });
   };
 
   /* ---------------- Delete Handlers for Volunteers, Messages & Donations ---------------- */
   const handleDeleteVolunteer = (id: string) => {
-    if (window.confirm('আপনি কি নিশ্চিত যে এই আবেদনকারীকে ডিলিট করতে চান?')) {
-      const updated = volunteers.filter(v => v.id !== id);
-      setVolunteers(updated);
-      commitToDb({ volunteers: updated }, 'স্বেচ্ছাসেবক আবেদন ডিলিট করা হয়েছে');
-    }
+    requestConfirmation(
+      'স্বেচ্ছাসেবক আবেদন ডিলিট',
+      'আপনি কি নিশ্চিত যে এই আবেদনকারীর রেকর্ডটি ডিলিট করতে চান? এটি লোকাল এবং গুগল শিট উভয় জায়গা থেকেই স্থায়ীভাবে মুছে যাবে।',
+      async () => {
+        const updated = volunteers.filter(v => v.id !== id);
+        setVolunteers(updated);
+        commitToDb({ volunteers: updated }, 'স্বেচ্ছাসেবক আবেদন সফলভাবে ডিলিট করা হয়েছে');
+        const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+        if (scriptUrl) {
+          await pushToGoogleSheets(scriptUrl, 'saveVolunteers', updated);
+        }
+        closeConfirmModal();
+      }
+    );
   };
 
   const handleDeleteMessage = (id: string) => {
-    if (window.confirm('আপনি কি নিশ্চিত যে এই বার্তাটি ডিলিট করতে চান?')) {
-      const updated = messages.filter(m => m.id !== id);
-      setMessages(updated);
-      commitToDb({ messages: updated }, 'বার্তা ডিলিট করা হয়েছে');
-    }
+    requestConfirmation(
+      'বার্তা ডিলিট',
+      'আপনি কি নিশ্চিত যে এই বার্তাটি ডিলিট করতে চান? এটি লোকাল এবং গুগল শিট উভয় জায়গা থেকেই স্থায়ীভাবে মুছে যাবে।',
+      async () => {
+        const updated = messages.filter(m => m.id !== id);
+        setMessages(updated);
+        commitToDb({ messages: updated }, 'বার্তা সফলভাবে ডিলিট করা হয়েছে');
+        const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+        if (scriptUrl) {
+          await pushToGoogleSheets(scriptUrl, 'saveMessages', updated);
+        }
+        closeConfirmModal();
+      }
+    );
   };
 
   const handleDeleteDonation = (id: string) => {
-    if (window.confirm('আপনি কি নিশ্চিত যে এই অনুদানের রেকর্ডটি ডিলিট করতে চান?')) {
-      const updated = donations.filter(d => d.id !== id);
-      setDonations(updated);
-      commitToDb({ donations: updated }, 'অনুদানের রেকর্ড ডিলিট করা হয়েছে');
-    }
+    requestConfirmation(
+      'অনুদানের রেকর্ড ডিলিট',
+      'আপনি কি নিশ্চিত যে এই অনুদানের রেকর্ডটি ডিলিট করতে চান? এটি লোকাল এবং গুগল শিট উভয় জায়গা থেকেই স্থায়ীভাবে মুছে যাবে।',
+      async () => {
+        const updated = donations.filter(d => d.id !== id);
+        setDonations(updated);
+        commitToDb({ donations: updated }, 'অনুদানের রেকর্ড সফলভাবে ডিলিট করা হয়েছে');
+        const scriptUrl = settingsForm.googleSheetUrl || settingsForm.scriptUrl || db.settings.googleSheetUrl || db.settings.scriptUrl;
+        if (scriptUrl) {
+          await pushToGoogleSheets(scriptUrl, 'saveDonations', updated);
+        }
+        closeConfirmModal();
+      }
+    );
   };
 
   // If not logged in, render Islamic Admin Login Screen
@@ -985,6 +1127,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                 {/* Step-by-step Setup instructions */}
                 <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+                  {/* Connected Spreadsheet Box */}
+                  <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-sans-bn">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                        <span className="text-xs font-bold text-emerald-950 font-serif-bn">সংযুক্ত গুগল স্প্রেডশীট (Google Sheet)</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 font-mono break-all">
+                        {TARGET_SPREADSHEET_URL}
+                      </p>
+                    </div>
+                    <a
+                      href={TARGET_SPREADSHEET_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer font-serif-bn"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>গুগল শিট খুলুন</span>
+                    </a>
+                  </div>
+
                   <h3 className="text-sm font-bold text-slate-800">
                     ৩ মিনিটে ফ্রি গুগল শিট ডাটাবেস চালু করার নিয়মাবলী:
                   </h3>
@@ -994,7 +1158,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold mb-2">১</div>
                       <h4 className="font-bold text-slate-900 mb-1">গুগল শিট খুলুন</h4>
                       <p className="text-slate-600 leading-relaxed">
-                        একটি নতুন গুগল শিট তৈরি করুন অথবা আপনার বিদ্যমান শিট খুলুন। <strong>Extensions → Apps Script</strong>-এ যান।
+                        উপরের <strong>"গুগল শিট খুলুন"</strong> বাটনে ক্লিক করে শিটটি ওপেন করুন। এরপর মেনুবার থেকে <strong>Extensions → Apps Script</strong>-এ যান।
                       </p>
                     </div>
 
@@ -1861,6 +2025,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         onClose={() => setIsPasswordModalOpen(false)}
         onSavePassword={handleSavePassword}
       />
+
+      {/* Global In-App Deletion Confirmation Modal Dialog */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in font-serif-bn">
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-scale-up relative"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans-bn">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={closeConfirmModal}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                বাতিল করুন
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmModal.onConfirm()}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{confirmModal.confirmButtonText || 'হ্যাঁ, ডিলিট করুন'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
